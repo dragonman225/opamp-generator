@@ -5,6 +5,7 @@ const LambdaDatabase = require("./Database");
 const cal = require("./Calculator");
 const csv = require("./CSVLoader");
 const fmt = require("./format");
+const questions = require("./questions");
 
 const lambdaTablePath = 'data/lambda_cmos_w=1u_vds=0.45v.csv';
 
@@ -14,7 +15,7 @@ const spec = doc.spec;
 
 const Database = new LambdaDatabase();
 const DBZero = {
-  length: 1,
+  length: 0.5,
   lambda_n: 0,
   lambda_p: 0
 }
@@ -27,77 +28,6 @@ for (let i = 0; i < data.length; ++i) {
 }
 Database.save(data);
 //console.log(Database.data);
-
-const questions = {
-  welcome: [
-    {
-      type: 'confirm',
-      name: 'continue',
-      message: 'Are you ready to start the design flow?',
-      default: () => { return true }
-    }
-  ],
-  stage1: [
-    {
-      type: 'number',
-      name: 'target_ugbw',
-      message: 'What\'s your target unity-gain bandwidth (MHz)?',
-      default: () => { return spec.min_ugbw / Number(1e+6) }
-    },
-    {
-      type: 'number',
-      name: 'target_slew_rate',
-      message: 'What\'s your target slew rate (V/us)?',
-      default: () => { return spec.min_sr / Number(1e+6) }
-    },
-    {
-      type: 'number',
-      name: 'target_vov1',
-      message: 'What\'s the override voltage you want for M1,2 (V)?',
-      default: () => { return spec.vov }
-    }
-  ],
-  stage1_1: [
-    {
-      type: 'number',
-      name: 'confirm_id',
-      message: 'Decide your id1, leave 0 to use recommended value (uA).',
-      default: 0
-    },
-    {
-      type: 'number',
-      name: 'target_vovb',
-      message: 'What\'s the override voltage you want for Mb1,b2 (V)?',
-      default: spec.vov
-    },
-    {
-      type: 'number',
-      name: 'target_vov3',
-      message: 'What\'s the override voltage you want for M3,4 (V)?',
-      default: spec.vov
-    },
-    {
-      type: 'number',
-      name: 'target_vov5',
-      message: 'What\'s the override voltage you want for M5,6 (V)?',
-      default: spec.vov
-    },
-    {
-      type: 'number',
-      name: 'target_vov7',
-      message: 'What\'s the override voltage you want for M7-10 (V)?',
-      default: spec.vov
-    }
-  ],
-  stage2: [
-    {
-      type: 'number',
-      name: 'target_gain',
-      message: 'What\'s the gain you want (dB)?',
-      default: () => { return spec.min_gain }
-    }
-  ]
-}
 
 function entry() {
   cli.prompt(questions.welcome).then(answers => {
@@ -133,6 +63,7 @@ function stage1_1(prevResult) {
     let vov3 = answers.target_vov3;
     let vov5 = answers.target_vov5;
     let vov7 = answers.target_vov7;
+    let vov9 = answers.target_vov9;
     let id1 = confirm_id ? confirm_id / Number(1e+6) : pv.id1;
     if (id1 >= pv.id1) {
       console.log(`Your id1 is OK.`);
@@ -141,15 +72,17 @@ function stage1_1(prevResult) {
       let gm3 = cal.gm(2 * id1, vov3);
       let gm5 = cal.gm(id1, vov5);
       let gm7 = cal.gm(id1, vov7);
+      let gm9 = cal.gm(id1, vov9);
       console.log(`Your gm_b1,b2 = ${fmt.gm(gmb)} mA/V.`);
       console.log(`Your gm_1,2   = ${fmt.gm(gm1)} mA/V.`);
       console.log(`Your gm_3,4   = ${fmt.gm(gm3)} mA/V.`);
       console.log(`Your gm_5,6   = ${fmt.gm(gm5)} mA/V.`);
-      console.log(`Your gm_7-10  = ${fmt.gm(gm7)} mA/V.`);
+      console.log(`Your gm_7,8   = ${fmt.gm(gm7)} mA/V.`);
+      console.log(`Your gm_9,10  = ${fmt.gm(gm9)} mA/V.`);
       stage2({
         id1,
-        gmb, gm1, gm3, gm5, gm7,
-        vovb, vov1: pv.vov1, vov3, vov5, vov7
+        gmb, gm1, gm3, gm5, gm7, gm9,
+        vovb, vov1: pv.vov1, vov3, vov5, vov7, vov9
       });
     } else {
       console.log(`Your id1 need to be > ${fmt.id(pv.id1)} uA.`);
@@ -163,44 +96,60 @@ function stage2(prevResult) {
   cli.prompt(questions.stage2).then(answers => {
     let gain = cal.toVV(answers.target_gain);
     let rout = gain / pv.gm1;
-    let ro70 = Math.sqrt(2 * rout / pv.gm7);
-    let ro34 = 0.5 * ro70;
-    let ro12 = ro70;
-    let ro56 = ro70;
+
+    let ro78 = Math.sqrt(2 * rout / pv.gm7);
+    let ro90 = ro78;
+    let ro12 = ro78;
+    let ro34 = ro78;
+    let ro56 = ro78;
     let rocs = 0.5 * ro12;
+    let gain_est = cal.gain(pv.gm1, pv.gm5, pv.gm7, ro12, ro34, ro56, ro78, ro90);
+
     let lambda12p = cal.lambda(pv.id1, ro12, spec.vds);
     let lambda34n = cal.lambda(2 * pv.id1, ro34, spec.vds);
     let lambda56n = cal.lambda(pv.id1, ro56, spec.vds);
-    let lambda70p = cal.lambda(pv.id1, ro70, spec.vds);
+    let lambda78p = cal.lambda(pv.id1, ro78, spec.vds);
+    let lambda90p = cal.lambda(pv.id1, ro90, spec.vds);
     let lambdacsp = cal.lambda(2 * pv.id1, rocs, spec.vds);
-    let _l12 = {};
-    let _l34 = {};
-    let _l56 = {};
-    let _l70 = {};
-    let _lcs = {};
-    if (false) {
-      _l12 = Database.lookApprox('lambda_p', lambda12p);
-      _l34 = Database.lookApprox('lambda_n', lambda34n);
-      _l56 = Database.lookApprox('lambda_n', lambda56n);
-      _l70 = Database.lookApprox('lambda_p', lambda70p);
-      _lcs = Database.lookApprox('lambda_p', lambdacsp);
+
+    let lambda12FromTable = {};
+    let lambda34FromTable = {};
+    let lambda56FromTable = {};
+    let lambda78FromTable = {};
+    let lambda90FromTable = {};
+    let lambdaCSFromTable = {};
+
+    if (answers.consider_clm) {
+      console.log(`Channel-length modulation effects will be considered.\n`);
+      lambda12FromTable = Database.lookApprox('lambda_p', lambda12p);
+      lambda34FromTable = Database.lookApprox('lambda_n', lambda34n);
+      lambda56FromTable = Database.lookApprox('lambda_n', lambda56n);
+      lambda78FromTable = Database.lookApprox('lambda_p', lambda78p);
+      lambda90FromTable = Database.lookApprox('lambda_p', lambda90p);
+      lambdaCSFromTable = Database.lookApprox('lambda_p', lambdacsp);
     } else {
-      _l12 = DBZero;
-      _l34 = DBZero;
-      _l56 = DBZero;
-      _l70 = DBZero;
-      _lcs = DBZero;
+      console.log(`Channel-length modulation effects will be ignored.\n`);
+      lambda12FromTable = DBZero;
+      lambda34FromTable = DBZero;
+      lambda56FromTable = DBZero;
+      lambda78FromTable = DBZero;
+      lambda90FromTable = DBZero;
+      lambdaCSFromTable = DBZero;
     }
-    let l12 = _l12.length;
-    let l34 = _l34.length;
-    let l56 = _l56.length;
-    let l70 = _l70.length;
-    let lcs = _lcs.length;
-    let w12 = cal.width(pv.id1, l12, pv.vov1, proc.kp, _l12.lambda_p, spec.vds);
-    let w34 = cal.width(2 * pv.id1, l34, pv.vov3, proc.kn, _l34.lambda_n, spec.vds);
-    let w56 = cal.width(pv.id1, l56, pv.vov5, proc.kn, _l56.lambda_n, spec.vds);
-    let w70 = cal.width(pv.id1, l70, pv.vov7, proc.kp, _l70.lambda_p, spec.vds);
-    let wcs = cal.width(2 * pv.id1, lcs, pv.vovb, proc.kp, _lcs.lambda_p, spec.vds);
+
+    let l12 = lambda12FromTable.length;
+    let l34 = lambda34FromTable.length;
+    let l56 = lambda56FromTable.length;
+    let l78 = lambda78FromTable.length;
+    let l90 = lambda90FromTable.length;
+    let lcs = lambdaCSFromTable.length;
+
+    let w12 = cal.width(pv.id1, l12, pv.vov1, proc.kp, lambda12FromTable.lambda_p, spec.vds);
+    let w34 = cal.width(2 * pv.id1, l34, pv.vov3, proc.kn, lambda34FromTable.lambda_n, spec.vds);
+    let w56 = cal.width(pv.id1, l56, pv.vov5, proc.kn, lambda56FromTable.lambda_n, spec.vds);
+    let w78 = cal.width(pv.id1, l78, pv.vov7, proc.kp, lambda78FromTable.lambda_p, spec.vds);
+    let w90 = cal.width(pv.id1, l90, pv.vov9, proc.kp, lambda90FromTable.lambda_p, spec.vds);
+    let wcs = cal.width(2 * pv.id1, lcs, pv.vovb, proc.kp, lambdaCSFromTable.lambda_p, spec.vds);
 
     let vgs_b1_b2 = cal.vgs(pv.vovb, proc.vth0_p);
     let vgs_3_4 = cal.vgs(pv.vov3, proc.vth0_n);
@@ -210,28 +159,41 @@ function stage2(prevResult) {
     let vbn1 = vgs_3_4;
     let vbn2 = spec.vds + vgs_5_6;
 
-    console.log(`You have ro_1,2 = ${ro12}, ro_3,4 = ${ro34}`);
-    console.log(`You have ro_5,6 = ${ro56}, ro_7-10 = ${ro70}`);
-    console.log(`You have ro_b1,b2 = ${rocs}\n`);
-
-    console.log(`You have length_1,2 = ${fmt.wl(l12)}, length_3,4 = ${fmt.wl(l34)}`);
-    console.log(`You have length_5,6 = ${fmt.wl(l56)}, length_7-10 = ${fmt.wl(l70)}`);
-    console.log(`You have length_b1,b2 = ${fmt.wl(lcs)}`);
-    console.log(`You have width_1,2 = ${fmt.wl(w12)}, width_3,4 = ${fmt.wl(w34)}`);
-    console.log(`You have width_5,6 = ${fmt.wl(w56)}, width_7-10 = ${fmt.wl(w70)}`);
-    console.log(`You have width_b1,b2 = ${fmt.wl(wcs)}\n`);
-
     console.log(`Lambda lookup confidence:`);
     console.log(`MOSFET Calculated          Actual Device `);
-    console.log(`M1,2   ${lambda12p} ${_l12.lambda_p}`);
-    console.log(`M3,4   ${lambda34n} ${_l34.lambda_n}`);
-    console.log(`M5,6   ${lambda56n} ${_l56.lambda_n}`);
-    console.log(`M7-10  ${lambda70p} ${_l70.lambda_p}`);
-    console.log(`Mb1b2  ${lambdacsp} ${_lcs.lambda_p}\n`);
+    console.log(`M1,2   ${lambda12p} ${lambda12FromTable.lambda_p}`);
+    console.log(`M3,4   ${lambda34n} ${lambda34FromTable.lambda_n}`);
+    console.log(`M5,6   ${lambda56n} ${lambda56FromTable.lambda_n}`);
+    console.log(`M7,8   ${lambda78p} ${lambda78FromTable.lambda_p}`);
+    console.log(`M9,10  ${lambda90p} ${lambda90FromTable.lambda_p}`);
+    console.log(`Mb1b2  ${lambdacsp} ${lambdaCSFromTable.lambda_p}\n`);
 
-    console.log(`VGS_b1,b2 = ${vgs_b1_b2}, VGS_3,4 = ${vgs_3_4}, VGS_5,6 = ${vgs_5_6}`);
-    console.log(`Need to set VBP1 = ${vbp1}, VBP2 = ${vbp2}`);
-    console.log(`Need to set VBN1 = ${vbn1}, VBN2 = ${vbn2}`);
+    console.log(`Calculated VGS (V):`);
+    console.log(`VGS_b1,b2 = ${vgs_b1_b2}, VGS_3,4 = ${vgs_3_4}, VGS_5,6 = ${vgs_5_6}\n`);
+
+    console.log(`Your ro:`);
+    console.log(`ro_1,2 = ${ro12}, ro_b1,b2 = ${rocs}`);
+    console.log(`ro_3,4 = ${ro34}, ro_5,6 = ${ro56}`);
+    console.log(`ro_7,8 = ${ro78}, ro_9,10 = ${ro90}\n`);
+    console.log(`Calculated gain = ${cal.todB(gain_est)} dB.`)
+
+    console.log(`Your MOSFET Sizes (um):`);
+    console.table([
+      { instance: "Mb1,b2", width: fmt.wl(wcs), length: fmt.wl(lcs) },
+      { instance: "M1,2", width: fmt.wl(w12), length: fmt.wl(l12) },
+      { instance: "M3,4", width: fmt.wl(w34), length: fmt.wl(l34) },
+      { instance: "M5,6", width: fmt.wl(w56), length: fmt.wl(l56) },
+      { instance: "M7,8", width: fmt.wl(w78), length: fmt.wl(l78) },
+      { instance: "M9,10", width: fmt.wl(w90), length: fmt.wl(l90) }
+    ]);
+
+    console.log(`Your Bias Voltages (V):`);
+    console.table([
+      { point: "VBP1", voltage: vbp1 },
+      { point: "VBP2", voltage: vbp2 },
+      { point: "VBN1", voltage: vbn1 },
+      { point: "VBN2", voltage: vbn2 }
+    ]);
   });
 }
 

@@ -21,7 +21,7 @@ let Format = function (format) {
    * @returns {string} - in um
    */
   format.wl = (v) => {
-    return v.toFixed(2);
+    return parseFloat(v.toFixed(2));
   }
 
   return format;

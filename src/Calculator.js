@@ -37,7 +37,14 @@ let Calculator = function (cal) {
   }
 
   cal.todB = (vv) => {
-    return 20 * Math.log(vv);
+    return 20 * Math.log10(vv);
+  }
+
+  cal.gain = (gm1, gm5, gm7, ro1, ro3, ro5, ro7, ro9) => {
+    let left = gm5 * ((ro1 * ro3) / (ro1 + ro3)) * ro5;
+    let right = gm7 * ro7 * ro9;
+    let rout = (left * right) / (left + right);
+    return gm1 * rout;
   }
 
   return cal;
