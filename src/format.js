@@ -2,26 +2,34 @@ let Format = function (format) {
   
   /**
    * @param {number} v - in SI
-   * @returns {string} - in mA/V
+   * @returns {number} - in mA/V
    */
   format.gm = (v) => {
-    return (v * 1000).toFixed(3);
+    return Math.round(v * 100000) / 100;
   }
 
   /**
    * @param {number} v - in SI
-   * @returns {string} - in uA
+   * @returns {number} - in uA
    */
   format.id = (v) => {
-    return (v * 1000000).toFixed(0);
+    return Math.round(v * 1000000);
   }
 
   /**
-   * @param {number} v - in SI
-   * @returns {string} - in um
+   * @param {number} v - in um
+   * @returns {number} - in um
    */
   format.wl = (v) => {
-    return parseFloat(v.toFixed(2));
+    return Math.round(v * 100) / 100;
+  }
+
+  /**
+   * @param {number} v - in Ohm
+   * @returns {number} - in Ohm
+   */
+  format.ro = (v) => {
+    return Math.round(v * 100) / 100;
   }
 
   return format;

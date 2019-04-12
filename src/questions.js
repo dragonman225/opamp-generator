@@ -36,7 +36,13 @@ const Questions = {
   stage1_1: [
     {
       type: 'number',
-      name: 'confirm_id',
+      name: 'confirm_id8',
+      message: 'Decide your id8, leave 0 to use recommended value (uA).',
+      default: 0
+    },
+    {
+      type: 'number',
+      name: 'confirm_id1',
       message: 'Decide your id1, leave 0 to use recommended value (uA).',
       default: 0
     },
