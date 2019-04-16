@@ -30,7 +30,7 @@ const Questions = {
       type: 'number',
       name: 'target_vov1',
       message: 'What\'s the override voltage you want for M1,2 (V)?',
-      default: spec.vov
+      default: spec.vov1
     }
   ],
   stage1_1: [
@@ -50,31 +50,31 @@ const Questions = {
       type: 'number',
       name: 'target_vovb',
       message: 'What\'s the override voltage you want for Mb1,b2 (V)?',
-      default: spec.vov
+      default: spec.vovb
     },
     {
       type: 'number',
       name: 'target_vov3',
       message: 'What\'s the override voltage you want for M3,4 (V)?',
-      default: spec.vov
+      default: spec.vov3
     },
     {
       type: 'number',
       name: 'target_vov5',
       message: 'What\'s the override voltage you want for M5,6 (V)?',
-      default: spec.vov
+      default: spec.vov5
     },
     {
       type: 'number',
       name: 'target_vov7',
       message: 'What\'s the override voltage you want for M7,8 (V)?',
-      default: spec.vov
+      default: spec.vov7
     },
     {
       type: 'number',
       name: 'target_vov9',
       message: 'What\'s the override voltage you want for M9,10 (V)?',
-      default: spec.vov
+      default: spec.vov9
     }
   ],
   stage2: [

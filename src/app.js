@@ -7,11 +7,10 @@ const csv = require("./CSVLoader");
 const fmt = require("./format");
 const questions = require("./questions");
 
-const lambdaTablePath = 'data/lambda_cmos_w=1u_vds=0.45v.csv';
-
 const doc = yaml.safeLoad(fs.readFileSync('src/spec.yml'), 'utf-8');
 const proc = doc.process;
 const spec = doc.spec;
+const lambdaTablePath = doc.lambda_table;
 
 const Database = new LambdaDatabase();
 const DBZero = {
@@ -22,12 +21,12 @@ const DBZero = {
 
 let data = [];
 if (fs.existsSync(lambdaTablePath))
-  data = csv.load('data/lambda_cmos_w=1u_vds=0.45v.csv', ',');
+  data = csv.load(lambdaTablePath, ',');
 for (let i = 0; i < data.length; ++i) {
   data[i]['length'] *= 1000000;
 }
 Database.save(data);
-//console.log(Database.data);
+console.log(`${Database.data.length} rows in lambda lookup table.`);
 
 function entry() {
   cli.prompt(questions.welcome).then(answers => {
@@ -92,13 +91,14 @@ function stage2(prevResult) {
   let pv = prevResult;
   cli.prompt(questions.stage2).then(answers => {
     let gain = cal.toVV(answers.target_gain);
+    let rout = gain / pv.gm1;
 
-    let ro_sq = (gain * (pv.gm5 + pv.gm7)) / (pv.gm1 * pv.gm5 * pv.gm7);
-    let ro34 = Math.sqrt(ro_sq);
-    let ro78 = ro34;
-    let ro90 = ro34;
-    let ro12 = ro34 / (spec.magic_k - 1);
-    let ro56 = spec.magic_k * ro34;
+    let ro90 = Math.sqrt((spec.magic_k + 1) * rout / pv.gm7);
+    let ro78 = ro90;
+    let ro12pararo34 = Math.sqrt((spec.magic_k + 1) * rout / (spec.magic_k * spec.magic_m * pv.gm5));
+    let ro34 = (spec.magic_n + 1) * ro12pararo34 / spec.magic_n;
+    let ro56 = spec.magic_m * ro12pararo34;
+    let ro12 = spec.magic_n * ro34;
     let rocs = 0.1 * ro12;
     let gain_est = cal.gain(pv.gm1, pv.gm5, pv.gm7, ro12, ro34, ro56, ro78, ro90);
 
@@ -125,7 +125,9 @@ function stage2(prevResult) {
       lambda90FromTable = Database.lookApprox('lambda_p', lambda90p);
       lambdaCSFromTable = Database.lookApprox('lambda_p', lambdacsp);
     } else {
-      console.log(`\nChannel-length modulation effects will be ignored.\n`);
+      console.log(`\nChannel-length modulation effects will be ignored.`);
+      console.log(`Gain is not guaranteed since we cannot calculate length from ro.`);
+      console.log(`A hard-coded value for length is used.\n`);
       lambda12FromTable = DBZero;
       lambda34FromTable = DBZero;
       lambda56FromTable = DBZero;
@@ -135,7 +137,12 @@ function stage2(prevResult) {
     }
 
     let l12 = lambda12FromTable.length;
-    let l34 = lambda34FromTable.length;
+    let l34 = 0;
+    if (answers.consider_clm) {
+      l34 = lambda34FromTable.length;
+    } else {
+      l34 = lambda34FromTable.length * 2;
+    }
     let l56 = lambda56FromTable.length;
     let l78 = lambda78FromTable.length;
     let l90 = lambda90FromTable.length;

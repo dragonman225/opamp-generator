@@ -11,9 +11,18 @@ process:
 spec:
   vdd: 1.8
   vds: 0.45 # (V)
-  vov: 0.2 # (V)
-  min_ugbw: 150e+6 # (Hz)
+  vovb: 0.2 # (V)
+  vov1: 0.2 # (V)
+  vov3: 0.3 # (V)
+  vov5: 0.2 # (V)
+  vov7: 0.15 # (V)
+  vov9: 0.35 # (V)
+  min_ugbw: 100e+6 # (Hz)
   c_load: 5e-12 # (F)
-  min_gain: 60 # (dB)
+  min_gain: 70 # (dB)
   min_sr: 100e+6 # (V/s)
-  magic_k: 1.5 # (Scalar)
+  magic_k: 6 # (Scalar)
+  magic_m: 1.5 # (Scalar)
+  magic_n: 4 # (Scalar)
+
+lambda_table: data/lambda_cmos_constwl_vds=0.45v.csv
