@@ -1,5 +1,12 @@
 # CMOS Folded-Cascode OpAmp Generator
 
+### Disclaimer
+
+* This is experimental.
+* This tool does not always generate working opamp parameters.
+* According to my test results, users still need quite much knowledge in analog design to make the generated parameters work well.
+* The value of this tool may be saving hand calculation time.
+
 ### Usage
 
 1. Install `Node.js` and `git`.
@@ -31,3 +38,7 @@
    ```
 
 3. Design your OpAmp.
+
+* Check below for instance names of the MOSFETs.
+
+![img](assets/circuit.png)
