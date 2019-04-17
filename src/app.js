@@ -14,7 +14,7 @@ const lambdaTablePath = doc.lambda_table;
 
 const Database = new LambdaDatabase();
 const DBZero = {
-  length: 0.5,
+  length: proc.target_length,
   lambda_n: 0,
   lambda_p: 0
 }
@@ -26,7 +26,7 @@ for (let i = 0; i < data.length; ++i) {
   data[i]['length'] *= 1000000;
 }
 Database.save(data);
-console.log(`${Database.data.length} rows in lambda lookup table.`);
+console.log(`${Database.data.length} rows in lambda lookup table.\n`);
 
 function entry() {
   cli.prompt(questions.welcome).then(answers => {
@@ -43,8 +43,8 @@ function stage1() {
     let gm1 = 2 * Math.PI * spec.c_load * ugbw;
     let id1_ugbw = vov1 * gm1 / 2;
     let id8 = spec.c_load * sr;
-    console.log(`You need id_1,2 >= ${fmt.id(id1_ugbw)} uA to achieve UGBW.`);
-    console.log(`You need id_8,10 and id_1,2 >= ${fmt.id(id8)} uA to achieve SR.`);
+    console.log(`\nYou need id_1,2 >= ${fmt.id(id1_ugbw)} uA to achieve UGBW.`);
+    console.log(`You need id_8,10 and id_1,2 >= ${fmt.id(id8)} uA to achieve SR.\n`);
     let id1 = 0;
     if (id1_ugbw < id8) {
       id1 = id8;
@@ -116,7 +116,7 @@ function stage2(prevResult) {
     let lambda90FromTable = {};
     let lambdaCSFromTable = {};
 
-    if (answers.consider_clm) {
+    if (answers.consider_clm && Database.data.length > 0) {
       console.log(`\nChannel-length modulation effects will be considered.\n`);
       lambda12FromTable = Database.lookApprox('lambda_p', lambda12p);
       lambda34FromTable = Database.lookApprox('lambda_n', lambda34n);
@@ -125,9 +125,12 @@ function stage2(prevResult) {
       lambda90FromTable = Database.lookApprox('lambda_p', lambda90p);
       lambdaCSFromTable = Database.lookApprox('lambda_p', lambdacsp);
     } else {
+      if (answers.consider_clm && Database.data.length === 0) {
+        console.log(`\nYour lambda lookup table is empty.`);
+      }
       console.log(`\nChannel-length modulation effects will be ignored.`);
-      console.log(`Gain is not guaranteed since we cannot calculate length from ro.`);
-      console.log(`A hard-coded value for length is used.\n`);
+      console.log(`Gain is not guaranteed since I cannot calculate length without lambda.`);
+      console.log(`A general value of length is used.\n`);
       lambda12FromTable = DBZero;
       lambda34FromTable = DBZero;
       lambda56FromTable = DBZero;

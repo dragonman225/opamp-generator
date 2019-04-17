@@ -1,5 +1,5 @@
 process:
-  limit: 0.18e-6 # (m)
+  target_length: 0.5 # (um)
   kn: 258e-6 # (uA/V^2)
   kp: 94e-6 # (uA/V^2)
   vth0_n: 3.33e-1 # (V)
@@ -19,10 +19,10 @@ spec:
   vov9: 0.35 # (V)
   min_ugbw: 100e+6 # (Hz)
   c_load: 5e-12 # (F)
-  min_gain: 70 # (dB)
+  min_gain: 65 # (dB)
   min_sr: 100e+6 # (V/s)
   magic_k: 6 # (Scalar)
-  magic_m: 1.5 # (Scalar)
+  magic_m: 1.9 # (Scalar)
   magic_n: 4 # (Scalar)
 
 lambda_table: data/lambda_cmos_constwl_vds=0.45v.csv

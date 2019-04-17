@@ -4,7 +4,7 @@
 
 * This is experimental.
 * This tool does not always generate working opamp parameters.
-* According to my test results, users still need quite much knowledge in analog design to make the generated parameters work well.
+* According to my test results, users still need quite much knowledge in analog IC design to make the generated parameters work well.
 * The value of this tool may be saving hand calculation time.
 
 ### Usage
@@ -31,13 +31,13 @@
    npm install
    ```
 
-   Start the application
+3. Edit `src/spec.yml`. Change the process dependent parameters and performance specifications.
+
+4. Start the interactive generator
 
    ```bash
    npm run start
    ```
-
-3. Design your OpAmp.
 
 * Check below for instance names of the MOSFETs.
 
