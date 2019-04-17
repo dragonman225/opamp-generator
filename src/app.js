@@ -7,7 +7,7 @@ const csv = require("./CSVLoader");
 const fmt = require("./format");
 const questions = require("./questions");
 
-const doc = yaml.safeLoad(fs.readFileSync('src/spec.yml'), 'utf-8');
+const doc = yaml.safeLoad(fs.readFileSync('src/config.yml'), 'utf-8');
 const proc = doc.process;
 const spec = doc.spec;
 const lambdaTablePath = doc.lambda_table;

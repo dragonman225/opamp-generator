@@ -1,7 +1,7 @@
 const fs = require("fs");
 const yaml = require("js-yaml");
 
-const doc = yaml.safeLoad(fs.readFileSync('src/spec.yml'), 'utf-8');
+const doc = yaml.safeLoad(fs.readFileSync('src/config.yml'), 'utf-8');
 const spec = doc.spec;
 
 const Questions = {
